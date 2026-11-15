@@ -1,38 +1,42 @@
 # livemoji
 
-Live emojis for video calls. Cartoon effects rendered on your real camera feed, in real time: make your head explode, pop your eyes out like a cartoon character, or sit there dazed with birds circling your head, live in the call. Discord chats are the starting context. Those three are the founding effects, not the full list.
+Live emojis for video calls: cartoon-style effects on your live camera feed, live in the call. The founding examples are your head exploding, your eyes popping out like a cartoon character, and a dazed look with birds circling your head. Discord chats are the starting context. Those three are requested examples, not the full list.
 
-Status: fresh scaffold. This repo holds the plan, the setup path, and the grounded research. There is no working app yet.
+Status: docs-only scaffold (plan, setup path, sourced research). No code exists yet.
 
-## The one hard rule
+## The real-time rule
 
-Everything built toward this has to work in real time. Targets:
+Your constraint: anything we build toward has to work in real time. What "real time" should mean in numbers is not validated yet. Proposed engineering targets to measure against on your hardware (targets, not requirements or measured results):
 
-- 30 fps minimum end to end, 60 fps as the goal
-- Under ~100 ms added latency from camera sensor to the call
-- An effect that misses the budget ships behind a flag or not at all
+- 30 fps floor, 60 fps goal, end to end
+- Under ~100 ms added camera-to-call latency
+- An effect that can't hold the measured budget ships behind a flag or not at all
 
-## How it works
+Settling these numbers on your actual machine is part of the first desktop session (see SETUP.md and docs/architecture.md).
 
-Discord (like Zoom, Meet and Teams) has no official API for plugging custom effects into a call. The standard route is a virtual camera:
+## Proposed route: virtual camera
+
+In the sources we checked (Nov 2026) we found no official Discord API for third-party in-call video effects. Existing third-party effects tools (SplitCam, OBS-based apps) instead ship a virtual camera:
 
 ```
-webcam -> livemoji effect pipeline (per frame) -> virtual camera device -> Discord
+webcam -> livemoji effect pipeline -> virtual camera device -> Discord
 ```
 
-You pick the virtual camera in Discord's Voice & Video settings, and everyone in the call sees the processed feed. No Discord plugin, no per-app integration, and the same output works in Meet, Zoom and Teams for free.
+You'd pick the virtual camera in Discord's Voice & Video settings. In principle the same output should also work in other call apps that accept a camera source (Meet, Zoom, Teams), but that's untested and per-app quirks are possible.
 
-## Two build lanes
+## Two lanes, no settled product decision
 
-**Lane A: classic CV effects (build first).** Google's MediaPipe Face Landmarker detects 478 3D face landmarks plus 52 expression blendshape scores in real time, on-device and GPU-accelerated. Anchor sprites, shaders and particle effects to those landmarks. All three founding effects are fully achievable in this lane on an ordinary laptop: eyes pop (scale and displace eye sprites off the eye landmarks), dazed birds (particles orbiting the head pose matrix), head explode (segment the head region and blow it into particles while the body stays).
+Your ask is video generation. The lanes below are about how to get there, not a decision to swap generation for something simpler.
 
-**Lane B: generative video effects (research track).** Real-time video diffusion exists but is datacenter-class hardware today. Measured numbers and links are in `docs/architecture.md`. The pipeline exposes a pluggable frame-processor interface so a generative backend (local GPU, or hosted on something like fal) can slot in behind the same virtual camera output later without a redesign.
+**Lane A: CV-based baseline (proposed prototype).** Google's MediaPipe Face Landmarker advertises 478 3D face landmarks plus 52 expression blendshapes in real time, on-device and GPU-accelerated. That's the vendor's claim, not yet measured on your machine. The proposal: use it to build the effect framework, triggers and virtual-camera plumbing quickly, and to set a measured real-time baseline that any generative approach has to beat on quality. The three founding effects have plausible landmark-anchored implementations here; whether they'd look good enough is an open question, not a settled one.
+
+**Lane B: generative video (the stated direction; feasibility open).** Real-time video diffusion exists in published results, but every measured number we found was produced on datacenter-class GPUs with specific resolutions and settings (details and links in docs/architecture.md). We found no published measurements on consumer laptops, and one system's own ~300 ms glass-to-glass figure may already read as lag in a call. Whether generation is viable for you, locally or via a hosted endpoint, is an open validation task with a concrete test plan in docs/architecture.md.
 
 ## Repo layout
 
-- `SETUP.md` - dev environment and the path from clone to first effect live in Discord
-- `docs/architecture.md` - pipeline design, latency budget, Lane B research with sources
-- `docs/effect-ideas.md` - the effect backlog: founding three plus candidates
+- `SETUP.md` - docs-only desktop setup path, from fresh clone to one measured effect in a Discord call
+- `docs/architecture.md` - proposed pipeline, unvalidated latency budget, Lane B research with sources, and the feasibility test plan
+- `docs/effect-ideas.md` - the effect backlog: the three requested examples plus candidates
 
 ## Naming
 
